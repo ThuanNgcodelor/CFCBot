@@ -1,6 +1,6 @@
 # 🤖 AGENTS.md — AI AGENT CONTEXT & OPERATIONAL GUIDELINES
 <!-- AI-CONTEXT-ROOT: chatbot/ -->
-<!-- LAST-UPDATED: 2026-09-09 -->
+<!-- LAST-UPDATED: 2026-10-01 -->
 
 > **DÀNH CHO AI / CODEX / COPILOT TIẾP THEO KHI MỞ THƯ MỤC NÀY:**
 > Bạn **BẮT BUỘC** phải đọc kỹ toàn bộ tài liệu này trước khi phân tích hoặc chỉnh sửa bất kỳ file nào trong `chatbot/`.
@@ -13,8 +13,8 @@
 Khi cần hiểu hiện trạng trước khi sửa code hoặc workflow, đọc theo thứ tự sau:
 
 1. [AGENTS.md](AGENTS.md) — quy tắc an toàn, kiến trúc và các thay đổi đã triển khai.
-2. [Master plan CFC AI Agent: hiện tại và tương lai](plan/MASTER_PLAN_CFC_AI_AGENT_HIEN_TAI_VA_TUONG_LAI_2026-09-09.md) — điểm vào dễ hiểu về luồng hệ thống, vai trò từng file, CRM đã có/chưa có và roadmap.
-3. [Plan triển khai Chatbot độc lập, queue, OCR và Telegram Sales](plan/PLAN_TRIEN_KHAI_CHATBOT_QUEUE_OCR_TELEGRAM_SALES_2026-09-29.md) — kế hoạch production mới nhất cho tách runtime, gom chuỗi tin, ảnh/OCR và chuyển lead theo khu vực.
+2. [Master plan cập nhật CFCBot: queue, OCR và Telegram Sales](plan/PLAN_DINH_HUONG_CAP_NHAT_CFCBOT_QUEUE_OCR_TELEGRAM_2026-10-01.md) — nguồn quyết định hiện hành sau cutover, gồm baseline, contract, phase/gate, test và rollback.
+3. [Master plan CFC AI Agent: hiện tại và tương lai](plan/MASTER_PLAN_CFC_AI_AGENT_HIEN_TAI_VA_TUONG_LAI_2026-09-09.md) — nền tảng về luồng hệ thống, vai trò từng file, CRM đã có/chưa có và roadmap AI.
 4. [Phase roadmap nâng cấp không làm mất hệ thống cũ](plan/PHASE_ROADMAP_CFC_AI_AGENT_NANG_CAP_KHONG_MAT_HE_THONG_CU_2026-09-09.md) — thứ tự thực thi, dependency, nghiệm thu và rollback cho từng phase.
 5. [TAI_LIEU_HE_THONG_CFC_AI.md](TAI_LIEU_HE_THONG_CFC_AI.md) — tài liệu hệ thống/nghiệp vụ.
 6. [Tổng hợp hiện trạng & bộ test Conversation Intelligence](plan/TONG_HOP_HIEN_TRANG_VA_BO_TEST_CONVERSATION_INTELLIGENCE_CFC.md) — hiện trạng vận hành, giới hạn và cách test.

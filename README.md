@@ -1,10 +1,11 @@
 # CFCBot
 
 Standalone runtime and source-of-truth workspace for the ZeO/CFC customer
-chatbots. Production is intentionally disabled after migration scaffolding.
+chatbots.
 
-Current state: the isolated API/Redis stack has passed unit, schema and smoke
-tests, then was stopped. The legacy production runtime is still active.
+Current state: CFCBot is the active production runtime. The API, Redis and n8n
+containers run under the CFCBot Compose project; the legacy Javis service is
+disabled but its rollback artifacts remain during the observation window.
 
 ## What is included
 
@@ -42,24 +43,14 @@ This starts only:
 
 It does not start n8n or Cloudflare and does not modify the live workflows.
 
-## Production — intentionally locked
+## Production lifecycle
 
-`CFCbot start` refuses to run until these migration decisions are complete:
+Production has completed the one-time adoption of the existing Redis volume
+and n8n data directory. `CFCbot start` now starts the CFCBot API, Redis and n8n
+stack; the existing systemd Cloudflare tunnel remains the public ingress.
 
-1. Fill and audit `.env`.
-2. Configure n8n API access and compare local workflow source with live.
-3. Reconnect/test Meta, Google Sheets, Telegram and AMIS credentials.
-4. Approve whether to adopt the legacy Redis volume and n8n data directory.
-5. Complete isolated and canary tests.
-6. Set `CFCBOT_PRODUCTION_ENABLED=true`.
-
-For a one-time adoption of current Redis/n8n runtime, also set
-`CFCBOT_ADOPT_LEGACY_RUNTIME=true`. The start command then stops only the old
-`zeo-n8n` and `zeo-redis` containers before starting CFCBot containers with
-the configured persistent data. It does not delete volumes.
-
-Cloudflare stays disabled unless `CLOUDFLARE_ENABLED=true` and a tunnel token
-is provided.
+Do not delete the stopped legacy containers, source or volumes until the
+7–14 day observation and rollback window has passed.
 
 ## Commands
 
@@ -74,8 +65,8 @@ CFCbot status
 CFCbot logs
 ```
 
-See [the migration plan](PLAN_DI_CHUYEN_CHATBOT_TU_JAVIS_OS_2026-09-30.md)
-before any production cutover.
+See [the current implementation direction](chatbot/plan/PLAN_DINH_HUONG_CAP_NHAT_CFCBOT_QUEUE_OCR_TELEGRAM_2026-10-01.md)
+before implementing queue, OCR, Telegram Sales routing or reducing n8n.
 
 Test evidence is recorded in
 [`docs/operations/TEST_REPORT_2026-09-30.md`](docs/operations/TEST_REPORT_2026-09-30.md).

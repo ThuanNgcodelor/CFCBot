@@ -1,5 +1,7 @@
 # Plan chuẩn bị triển khai Chatbot độc lập, hàng đợi hội thoại, OCR và Telegram Sales
 
+> **Đã được thay thế ngày 01/10/2026.** Xem [Master plan cập nhật CFCBot: queue, OCR và Telegram Sales](PLAN_DINH_HUONG_CAP_NHAT_CFCBOT_QUEUE_OCR_TELEGRAM_2026-10-01.md). Tài liệu này được giữ để đối chiếu lịch sử trước cutover.
+
 Ngày lập: 29/09/2026  
 Phạm vi: CFC trước, sau đó tái sử dụng cho ZeO.  
 Trạng thái: **Đề xuất để duyệt — chưa triển khai, chưa thay đổi production.**
