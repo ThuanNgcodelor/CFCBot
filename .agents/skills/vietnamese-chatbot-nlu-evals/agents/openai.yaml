@@ -1,4 +1,0 @@
-interface:
-  display_name: "Vietnamese Chatbot NLU Evals"
-  short_description: "Tune Vietnamese chatbot intent and fallback"
-  default_prompt: "Use $vietnamese-chatbot-nlu-evals to improve Vietnamese chatbot NLU, RAG matching, fallback behavior, and eval coverage for ZeO/CFC workflows."
