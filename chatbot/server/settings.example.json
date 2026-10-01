@@ -1,0 +1,106 @@
+{
+  "redis": {
+    "host": "127.0.0.1",
+    "port": 6379,
+    "password": "",
+    "db": 0
+  },
+  "ollama": {
+    "base_url": "http://127.0.0.1:11434",
+    "embed_model": "bge-m3",
+    "embed_dim": 1024,
+    "chat_model": "qwen2.5:7b-instruct",
+    "fallback_embed_model": "qwen2.5:7b-instruct"
+  },
+  "llm_nlu": {
+    "mode": "off",
+    "model": "qwen2.5:7b-instruct",
+    "timeout_seconds": 1.6,
+    "min_confidence": 0.72,
+    "shadow_timeout_seconds": 20.0,
+    "shadow_max_pending": 2,
+    "shadow_max_observations": 500,
+    "shadow_retention_seconds": 604800,
+    "shadow_sample_rate": 1.0
+  },
+  "conversation": {
+    "session_ttl_seconds": 2592000,
+    "history_ttl_seconds": 2592000,
+    "history_limit": 50,
+    "idempotency_ttl_seconds": 86400,
+    "sender_lock_ttl_seconds": 30,
+    "sender_lock_wait_seconds": 3.0,
+    "orchestrator_mode": "assist",
+    "orchestrator_min_confidence": 0.85,
+    "orchestrator_history_limit": 6,
+    "orchestrator_timeout_seconds": 6.0
+  },
+  "grounding_policy": {
+    "mode": "enforce",
+    "customer_fact_generation_mode": "grounded_rewrite",
+    "grounded_rewrite_timeout_seconds": 4.0
+  },
+  "rag": {
+    "top_k": 5,
+    "high_confidence_threshold": 0.78,
+    "medium_confidence_threshold": 0.55,
+    "zeo_kb_key": "zeo:kb:basic:active",
+    "cfc_kb_key": "cfc:kb:basic:active",
+    "zeo_index_name": "zeo:vec:faq",
+    "cfc_index_name": "cfc:vec:faq"
+  },
+  "server": {
+    "host": "0.0.0.0",
+    "port": 8000,
+    "reload": true
+  },
+  "n8n": {
+    "url": "https://n8n.dinhduongcantho.io.vn",
+    "api_key": ""
+  },
+  "ai_providers": {
+    "execution_mode": "cloud",
+    "preferred_provider": "groq",
+    "gemini": {
+      "api_key": "",
+      "model": "gemini-2.0-flash"
+    },
+    "openrouter": {
+      "api_key": "",
+      "model": "google/gemini-2.0-flash-exp:free"
+    },
+    "groq": {
+      "api_key": "",
+      "model": "llama-3.3-70b-versatile"
+    }
+  },
+  "telegram": {
+    "enabled": false,
+    "bot_token": "",
+    "chat_id": ""
+  },
+  "shopee": {
+    "sheet_url": ""
+  },
+  "amis": {
+    "base_url": "https://crmconnect.misa.vn/api/v2",
+    "client_id": "JavisCFCChatbot",
+    "timeout_seconds": 20,
+    "page_size": 100,
+    "max_pages": 1000,
+    "max_retries": 3,
+    "public_approval_field": "chatbot_public",
+    "public_phone_field": "chatbot_public_phone",
+    "public_address_field": "chatbot_public_address",
+    "public_recency_days": 365,
+    "allowed_revenue_statuses": ["Đã ghi"],
+    "blocked_order_status_fragments": ["Hủy", "Từ chối"],
+    "allow_billing_address_fallback": false,
+    "allow_office_phone_fallback": false,
+    "min_public_products": 1,
+    "min_public_locations": 1,
+    "redis_order_lookup_key": "amis:internal:orders:active",
+    "redis_order_lookup_metadata_key": "amis:internal:orders:last-success",
+    "order_lookup_max_age_seconds": 43200
+  }
+}

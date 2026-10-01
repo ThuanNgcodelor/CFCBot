@@ -1,0 +1,275 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+SCRIPT_PATH="$(readlink -f "${BASH_SOURCE[0]}")"
+ROOT_DIR="$(cd "$(dirname "$SCRIPT_PATH")/.." && pwd)"
+ENV_FILE="${CFCBOT_ENV_FILE:-$ROOT_DIR/.env}"
+PROD_COMPOSE="$ROOT_DIR/compose.yaml"
+TEST_COMPOSE="$ROOT_DIR/compose.test.yaml"
+
+log() {
+  printf '%s\n' "$*"
+}
+
+die() {
+  printf 'ERROR: %s\n' "$*" >&2
+  exit 1
+}
+
+load_env() {
+  [[ -f "$ENV_FILE" ]] || die "Missing $ENV_FILE. Copy .env.example to .env first."
+  set -a
+  # shellcheck disable=SC1090
+  source "$ENV_FILE"
+  set +a
+}
+
+is_true() {
+  case "${1:-}" in
+    1|true|TRUE|yes|YES|on|ON) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
+require_command() {
+  command -v "$1" >/dev/null 2>&1 || die "Missing command: $1"
+}
+
+ensure_host_services() {
+  local include_cloudflare="${1:-false}"
+  require_command docker
+  require_command curl
+  if ! systemctl is-active --quiet docker; then
+    log "Starting Docker..."
+    sudo systemctl start docker
+  fi
+  if ! systemctl is-active --quiet ollama; then
+    log "Starting Ollama..."
+    sudo systemctl start ollama
+  fi
+  if [[ "$include_cloudflare" == "true" ]] \
+    && [[ "${CLOUDFLARE_MODE:-systemd}" == "systemd" ]] \
+    && ! systemctl is-active --quiet cloudflared; then
+    log "Starting Cloudflare Tunnel..."
+    sudo systemctl start cloudflared
+  fi
+  docker info >/dev/null
+}
+
+wait_http() {
+  local name="$1"
+  local url="$2"
+  local attempts="${3:-60}"
+  local attempt
+  for ((attempt = 1; attempt <= attempts; attempt++)); do
+    if curl --fail --silent --show-error --max-time 4 "$url" >/dev/null 2>&1; then
+      log "OK  $name: $url"
+      return 0
+    fi
+    sleep 1
+  done
+  log "ERROR: $name did not become healthy: $url" >&2
+  return 1
+}
+
+render_prod() {
+  python3 "$ROOT_DIR/scripts/render-settings.py" \
+    --env "$ENV_FILE" \
+    --output "$ROOT_DIR/runtime/settings.json"
+}
+
+render_test() {
+  python3 "$ROOT_DIR/scripts/render-settings.py" \
+    --env "$ENV_FILE" \
+    --output "$ROOT_DIR/runtime/settings.test.json" \
+    --redis-port 6380 \
+    --redis-password cfcbot-test-local \
+    --server-port 7778
+}
+
+profile_args() {
+  if [[ "${CLOUDFLARE_MODE:-systemd}" == "docker" ]] \
+    && is_true "${CLOUDFLARE_ENABLED:-false}"; then
+    printf '%s\n' "--profile" "public"
+  fi
+}
+
+validate_production() {
+  is_true "${CFCBOT_PRODUCTION_ENABLED:-false}" || die \
+    "Production is locked. Set CFCBOT_PRODUCTION_ENABLED=true only after test/cutover approval."
+  [[ -n "${REDIS_PASSWORD:-}" ]] || die "REDIS_PASSWORD is empty."
+  [[ "${REDIS_PASSWORD}" != CHANGE_ME* ]] || die "REDIS_PASSWORD still uses a placeholder."
+  [[ -n "${N8N_DATA_DIR:-}" ]] || die "N8N_DATA_DIR is empty."
+  if [[ "${CLOUDFLARE_MODE:-systemd}" == "docker" ]] \
+    && is_true "${CLOUDFLARE_ENABLED:-false}"; then
+    [[ -n "${CLOUDFLARE_TUNNEL_TOKEN:-}" ]] || die "Cloudflare is enabled but token is empty."
+  fi
+}
+
+adopt_legacy_if_approved() {
+  if ! is_true "${CFCBOT_ADOPT_LEGACY_RUNTIME:-false}"; then
+    return 0
+  fi
+  if systemctl is-active --quiet javis; then
+    die "javis.service is still active. Run: sudo systemctl disable --now javis"
+  fi
+  log "Stopping legacy n8n/Redis containers for the approved cutover..."
+  docker stop zeo-n8n zeo-redis >/dev/null 2>&1 || true
+}
+
+rollback_legacy_containers() {
+  log "Rolling back n8n/Redis containers..."
+  prod_compose_all stop >/dev/null 2>&1 || true
+  docker start zeo-redis zeo-n8n >/dev/null 2>&1 || true
+  log "Legacy n8n/Redis were restarted. To restore the API, run:"
+  log "  sudo systemctl enable --now javis"
+}
+
+prod_compose() {
+  local args=()
+  while IFS= read -r item; do
+    [[ -n "$item" ]] && args+=("$item")
+  done < <(profile_args)
+  docker compose --env-file "$ENV_FILE" -f "$PROD_COMPOSE" "${args[@]}" "$@"
+}
+
+prod_compose_all() {
+  docker compose --env-file "$ENV_FILE" -f "$PROD_COMPOSE" --profile public "$@"
+}
+
+show_status() {
+  local api_port="${CFCBOT_API_PORT:-7777}"
+  log ""
+  log "CFCBot containers:"
+  docker ps -a --filter 'name=cfcbot-' \
+    --format '  {{.Names}}\t{{.Status}}\t{{.Ports}}' || true
+  log ""
+  printf '  %-18s %s\n' "Ollama" "$(systemctl is-active ollama 2>/dev/null || true)"
+  printf '  %-18s %s\n' "Cloudflare" "$(systemctl is-active cloudflared 2>/dev/null || true)"
+  printf '  %-18s %s\n' "API :$api_port" "$(curl -sS -o /dev/null -w '%{http_code}' --max-time 3 "http://127.0.0.1:$api_port/health" 2>/dev/null || true)"
+  printf '  %-18s %s\n' "n8n :5678" "$(curl -sS -o /dev/null -w '%{http_code}' --max-time 3 http://127.0.0.1:5678/healthz 2>/dev/null || true)"
+  log ""
+}
+
+start_prod() {
+  load_env
+  validate_production
+  ensure_host_services true
+  render_prod >/dev/null
+  log "Preparing CFCBot API image before stopping the legacy containers..."
+  prod_compose build api
+  adopt_legacy_if_approved
+  log "Starting CFCBot production stack..."
+  if ! prod_compose up -d; then
+    rollback_legacy_containers
+    die "CFCBot Compose failed; legacy container rollback was attempted."
+  fi
+  if ! wait_http "CFCBot API" "http://127.0.0.1:${CFCBOT_API_PORT:-7777}/health" 90 \
+    || ! wait_http "n8n" "http://127.0.0.1:${N8N_PORT:-5678}/healthz" 90; then
+    rollback_legacy_containers
+    die "CFCBot health check failed; legacy container rollback was attempted."
+  fi
+  show_status
+}
+
+stop_prod() {
+  load_env
+  log "Stopping CFCBot containers; persistent data is preserved..."
+  prod_compose_all stop
+  if is_true "${CFCBOT_STOP_OLLAMA_ON_STOP:-false}"; then
+    sudo systemctl stop ollama
+  fi
+  if [[ "${CLOUDFLARE_MODE:-systemd}" == "systemd" ]] \
+    && systemctl is-active --quiet cloudflared; then
+    sudo systemctl stop cloudflared
+  fi
+  show_status
+}
+
+start_test() {
+  load_env
+  ensure_host_services false
+  render_test >/dev/null
+  log "Starting isolated test stack: API 7778, Redis 6380, no n8n, no Cloudflare..."
+  docker compose -f "$TEST_COMPOSE" up -d --build
+  wait_http "CFCBot test API" "http://127.0.0.1:7778/health" 120 \
+    || die "CFCBot isolated test failed."
+  curl --silent --show-error --max-time 10 http://127.0.0.1:7778/health
+  log ""
+}
+
+stop_test() {
+  docker compose -f "$TEST_COMPOSE" stop
+}
+
+doctor() {
+  load_env
+  local failed=0
+  for cmd in docker curl python3; do
+    if command -v "$cmd" >/dev/null 2>&1; then
+      log "OK  command: $cmd"
+    else
+      log "BAD command: $cmd"
+      failed=1
+    fi
+  done
+  if docker compose version >/dev/null 2>&1; then
+    log "OK  docker compose"
+  else
+    log "BAD docker compose"
+    failed=1
+  fi
+  for path in \
+    "$ROOT_DIR/chatbot/server/main.py" \
+    "$ROOT_DIR/chatbot/server/settings.example.json" \
+    "$ROOT_DIR/workflows/local-n8n/cfc_cobay_chatbot.workflow.ts" \
+    "$ROOT_DIR/workflows/local-n8n/zeo_chatbot.workflow.ts"; do
+    if [[ -f "$path" ]]; then
+      log "OK  file: ${path#$ROOT_DIR/}"
+    else
+      log "BAD missing: $path"
+      failed=1
+    fi
+  done
+  render_test >/dev/null
+  docker compose --env-file "$ENV_FILE" -f "$PROD_COMPOSE" config --quiet || failed=1
+  docker compose -f "$TEST_COMPOSE" config --quiet || failed=1
+  if [[ "${CFCBOT_PRODUCTION_ENABLED:-false}" == "true" ]]; then
+    log "WARN production start is ENABLED"
+  else
+    log "OK  production start is locked"
+  fi
+  if (( failed != 0 )); then
+    die "Doctor found one or more problems."
+  fi
+}
+
+usage() {
+  cat <<'EOF'
+Usage:
+  CFCbot doctor       Validate files, env and Compose without starting services
+  CFCbot test-start   Start isolated API :7778 + Redis :6380 only
+  CFCbot test-stop    Stop isolated test containers; keep test data
+  CFCbot start        Start production Redis, n8n, API and optional Cloudflare
+  CFCbot stop         Stop production CFCBot containers; preserve data
+  CFCbot restart      Restart production stack
+  CFCbot status       Show CFCBot container and endpoint status
+  CFCbot logs         Follow production logs
+EOF
+}
+
+case "${1:-status}" in
+  doctor) doctor ;;
+  test-start) start_test ;;
+  test-stop) stop_test ;;
+  start) start_prod ;;
+  stop) stop_prod ;;
+  restart) stop_prod; start_prod ;;
+  status) load_env; show_status ;;
+  logs)
+    load_env
+    prod_compose logs -f --tail=200
+    ;;
+  help|-h|--help) usage ;;
+  *) usage >&2; exit 2 ;;
+esac

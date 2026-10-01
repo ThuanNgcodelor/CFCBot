@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "facts": [
+    {
+      "fact_id": "cfc-product-family-eligibility-durian-v1",
+      "brand": "cfc",
+      "fact_type": "eligibility",
+      "crops": ["sầu riêng"],
+      "stages": [],
+      "answer": "Dạ CFC có các dòng NPK và phân hữu cơ để kỹ sư xem xét cho vườn sầu riêng. Bạn cho mình biết vườn đang kiến thiết, ra hoa hay nuôi trái để chọn hướng tư vấn phù hợp nhé. Phần công thức và liều lượng, kỹ sư sẽ đối chiếu thêm điều kiện canh tác trước khi hướng dẫn ạ.",
+      "source_id": "cfc_reply_docx_v1",
+      "source_locator": "cfc_faq_google_sheet_FULL_STANDARDIZED.csv#intent=product_lines",
+      "source_updated_at": "2026-08-17",
+      "approval_status": "approved",
+      "approval_basis": "active_customer_faq",
+      "approved_at": "2026-08-17"
+    }
+  ]
+}

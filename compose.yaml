@@ -1,0 +1,121 @@
+name: cfcbot
+
+services:
+  redis:
+    image: redis/redis-stack-server:latest
+    container_name: cfcbot-redis
+    restart: unless-stopped
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+      REDIS_ARGS: >-
+        --requirepass ${REDIS_PASSWORD}
+        --appendonly yes
+        --appendfsync everysec
+        --save 60 1000
+    ports:
+      - "127.0.0.1:${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli --no-auth-warning -a \"$$REDIS_PASSWORD\" ping | grep -q PONG"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 10s
+
+  n8n:
+    image: ${N8N_IMAGE:-docker.n8n.io/n8nio/n8n:2.39.6}
+    container_name: cfcbot-n8n
+    restart: unless-stopped
+    network_mode: host
+    environment:
+      N8N_LISTEN_ADDRESS: 127.0.0.1
+      N8N_PORT: ${N8N_PORT:-5678}
+      N8N_HOST: ${N8N_HOST}
+      N8N_PROTOCOL: ${N8N_PROTOCOL:-https}
+      N8N_EDITOR_BASE_URL: ${N8N_EDITOR_BASE_URL}
+      WEBHOOK_URL: ${WEBHOOK_URL}
+      N8N_PROXY_HOPS: ${N8N_PROXY_HOPS:-1}
+      N8N_SECURE_COOKIE: ${N8N_SECURE_COOKIE:-false}
+      N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS: "true"
+      GENERIC_TIMEZONE: ${CFCBOT_TIMEZONE:-Asia/Ho_Chi_Minh}
+      TZ: ${CFCBOT_TIMEZONE:-Asia/Ho_Chi_Minh}
+      # n8n 2.x blocks $env inside Code nodes by default. This instance is
+      # single-tenant and uses root .env as the migration secret source.
+      N8N_BLOCK_ENV_ACCESS_IN_NODE: "false"
+      CFCBOT_API_BASE_URL: ${CFCBOT_API_BASE_URL:-http://127.0.0.1:7777}
+      AMIS_BASE_URL: ${AMIS_BASE_URL:-https://crmconnect.misa.vn/api/v2}
+      AMIS_CLIENT_ID: ${AMIS_CLIENT_ID:-JavisCFCChatbot}
+      AMIS_CLIENT_SECRET: ${AMIS_CLIENT_SECRET:-}
+      AMIS_SYNC_INTERNAL_TOKEN: ${AMIS_SYNC_INTERNAL_TOKEN:-}
+    volumes:
+      - ${N8N_DATA_DIR}:/home/node/.n8n
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: ${CFCBOT_IMAGE:-cfcbot-api:local}
+    container_name: cfcbot-api
+    restart: unless-stopped
+    network_mode: host
+    environment:
+      LLM_NLU_MODE: ${LLM_NLU_MODE:-off}
+      LLM_NLU_TIMEOUT: ${LLM_NLU_TIMEOUT:-1.6}
+      LLM_NLU_CONFIDENCE: ${LLM_NLU_CONFIDENCE:-0.72}
+      CHAT_CONVERSATION_MODE: ${CHAT_CONVERSATION_MODE:-assist}
+      CHAT_CONVERSATION_MIN_CONFIDENCE: ${CHAT_CONVERSATION_MIN_CONFIDENCE:-0.85}
+      CHAT_CONVERSATION_HISTORY_LIMIT: ${CHAT_CONVERSATION_HISTORY_LIMIT:-6}
+      CHAT_CONVERSATION_TIMEOUT_SECONDS: ${CHAT_CONVERSATION_TIMEOUT_SECONDS:-6}
+      CHAT_CONVERSATION_CONTROL_KEY: ${CHAT_CONVERSATION_CONTROL_KEY:-}
+      CHAT_CANARY_MODE: ${CHAT_CANARY_MODE:-off}
+      CHAT_CANARY_PERCENT: ${CHAT_CANARY_PERCENT:-0}
+      CHAT_CANARY_SALT: ${CHAT_CANARY_SALT:-}
+      CHAT_CANARY_ALLOW_HIGH_RISK: ${CHAT_CANARY_ALLOW_HIGH_RISK:-false}
+      AMIS_CLIENT_SECRET: ${AMIS_CLIENT_SECRET:-}
+      AMIS_SYNC_INTERNAL_TOKEN: ${AMIS_SYNC_INTERNAL_TOKEN:-}
+      AMIS_ORDER_LOOKUP_HMAC_SECRET: ${AMIS_ORDER_LOOKUP_HMAC_SECRET:-}
+      AMIS_LOYALTY_LOOKUP_HMAC_SECRET: ${AMIS_LOYALTY_LOOKUP_HMAC_SECRET:-}
+    volumes:
+      - ./runtime/settings.json:/app/chatbot/server/settings.json
+    depends_on:
+      redis:
+        condition: service_healthy
+    command:
+      - python
+      - -m
+      - uvicorn
+      - main:app
+      - --host
+      - ${CFCBOT_API_HOST:-127.0.0.1}
+      - --port
+      - ${CFCBOT_API_PORT:-7777}
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request; urllib.request.urlopen('http://127.0.0.1:${CFCBOT_API_PORT:-7777}/health', timeout=5)"
+      interval: 10s
+      timeout: 6s
+      retries: 12
+      start_period: 15s
+
+  cloudflared:
+    image: ${CLOUDFLARE_IMAGE:-cloudflare/cloudflared:latest}
+    container_name: cfcbot-cloudflared
+    restart: unless-stopped
+    network_mode: host
+    profiles: ["public"]
+    environment:
+      TUNNEL_TOKEN: ${CLOUDFLARE_TUNNEL_TOKEN}
+    command: tunnel --no-autoupdate run
+    depends_on:
+      n8n:
+        condition: service_started
+      api:
+        condition: service_healthy
+
+volumes:
+  redis-data:
+    name: ${REDIS_VOLUME_NAME:-cfcbot-redis-data}

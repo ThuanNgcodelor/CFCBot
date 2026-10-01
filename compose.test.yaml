@@ -1,0 +1,61 @@
+name: cfcbot-test
+
+services:
+  redis:
+    image: redis/redis-stack-server:latest
+    container_name: cfcbot-test-redis
+    environment:
+      REDIS_PASSWORD: cfcbot-test-local
+      REDIS_ARGS: >-
+        --requirepass cfcbot-test-local
+        --appendonly yes
+    ports:
+      - "127.0.0.1:6380:6379"
+    volumes:
+      - redis-test-data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli --no-auth-warning -a \"$$REDIS_PASSWORD\" ping | grep -q PONG"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+      start_period: 5s
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: cfcbot-api:test
+    container_name: cfcbot-test-api
+    network_mode: host
+    environment:
+      LLM_NLU_MODE: "off"
+      CHAT_CONVERSATION_MODE: "off"
+      CHAT_CANARY_MODE: "off"
+    volumes:
+      - ./runtime/settings.test.json:/app/chatbot/server/settings.json
+    depends_on:
+      redis:
+        condition: service_healthy
+    command:
+      - python
+      - -m
+      - uvicorn
+      - main:app
+      - --host
+      - 127.0.0.1
+      - --port
+      - "7778"
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request; urllib.request.urlopen('http://127.0.0.1:7778/health', timeout=5)"
+      interval: 5s
+      timeout: 6s
+      retries: 20
+      start_period: 15s
+
+volumes:
+  redis-test-data:
+    name: cfcbot-test-redis-data

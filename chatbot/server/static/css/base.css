@@ -1,0 +1,167 @@
+/* ================================================
+   base.css — Design Tokens, Typography & Animations
+   CFC AI Admin Dashboard — Enterprise SaaS Edition
+   ================================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap');
+
+:root {
+  /* ── Background & Surfaces (Deep Slate / Vercel Dark) ── */
+  --bg-app:        #090D16;
+  --bg-sidebar:    rgba(13, 18, 30, 0.96);
+  --bg-topbar:     rgba(9, 13, 22, 0.85);
+  --bg-card:       #0F172A;
+  --bg-card-hover: #141E36;
+  --bg-surface:    #162038;
+  --bg-surface2:   #1E293B;
+  --bg-surface3:   #27354E;
+
+  /* ── Borders & Outlines ── */
+  --border-subtle: rgba(255, 255, 255, 0.06);
+  --border:        rgba(255, 255, 255, 0.09);
+  --border-hover:  rgba(255, 255, 255, 0.16);
+  --border-focus:  rgba(99, 102, 241, 0.5);
+
+  /* ── Accents & Brand ── */
+  --primary:       #6366F1;
+  --primary-hover: #4F46E5;
+  --primary-light: rgba(99, 102, 241, 0.12);
+  --primary-glow:  rgba(99, 102, 241, 0.25);
+  
+  --secondary:     #8B5CF6;
+  --secondary-glow:rgba(139, 92, 246, 0.25);
+
+  /* ── Semantic Colors ── */
+  --success:       #10B981;
+  --success-light: rgba(16, 185, 129, 0.12);
+  --success-border:rgba(16, 185, 129, 0.25);
+
+  --danger:        #EF4444;
+  --danger-light:  rgba(239, 68, 68, 0.12);
+  --danger-border: rgba(239, 68, 68, 0.25);
+
+  --warning:       #F59E0B;
+  --warning-light: rgba(245, 158, 11, 0.12);
+  --warning-border:rgba(245, 158, 11, 0.25);
+
+  --info:          #0EA5E9;
+  --info-light:    rgba(14, 165, 233, 0.12);
+  --info-border:   rgba(14, 165, 233, 0.25);
+
+  /* ── Typography Colors ── */
+  --text-main:     #F8FAFC;
+  --text-muted:    #94A3B8;
+  --text-dim:      #64748B;
+  --text-inverse:  #0F172A;
+
+  /* ── Sizing & Radius ── */
+  --sidebar-w:     240px;
+  --r-xs:          4px;
+  --r-sm:          8px;
+  --r-md:          12px;
+  --r-lg:          16px;
+  --r-full:        9999px;
+
+  /* ── Shadows & Depth ── */
+  --shadow-sm:     0 1px 2px 0 rgba(0, 0, 0, 0.3);
+  --shadow-md:     0 4px 12px -2px rgba(0, 0, 0, 0.4), 0 2px 6px -1px rgba(0, 0, 0, 0.25);
+  --shadow-lg:     0 12px 32px -4px rgba(0, 0, 0, 0.5), 0 4px 12px -2px rgba(0, 0, 0, 0.3);
+  --shadow-glow:   0 0 24px -4px var(--primary-glow);
+
+  /* ── Transitions ── */
+  --t-fast:        0.12s cubic-bezier(0.4, 0, 0.2, 1);
+  --t-normal:      0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  --t-smooth:      0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* ── Reset & Baseline ── */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  scroll-behavior: smooth;
+  color-scheme: dark;
+}
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background-color: var(--bg-app);
+  background-image: 
+    radial-gradient(ellipse 80% 50% at 50% -20%, rgba(99, 102, 241, 0.12), transparent),
+    radial-gradient(ellipse 40% 30% at 100% 0%, rgba(139, 92, 246, 0.08), transparent);
+  background-attachment: fixed;
+  color: var(--text-main);
+  min-height: 100vh;
+  font-size: 13.5px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Typography Hierarchy */
+h1, h2, h3, h4, h5, h6 {
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  color: var(--text-main);
+}
+
+a {
+  color: #818CF8;
+  text-decoration: none;
+  transition: color var(--t-fast);
+}
+a:hover {
+  color: #A5B4FC;
+}
+
+code, pre, .font-mono {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.86em;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--bg-surface2);
+  border-radius: var(--r-full);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-dim);
+}
+
+/* Selection */
+::selection {
+  background: rgba(99, 102, 241, 0.35);
+  color: #FFF;
+}
+
+/* Global Keyframe Animations */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes pulseGlow {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.15); opacity: 0.6; }
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}

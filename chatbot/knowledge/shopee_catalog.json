@@ -1,0 +1,65 @@
+{
+  "updated_at": "2026-08-15T22:30:00Z",
+  "products": [
+    {
+      "id": "zeo-01",
+      "name": "Nước giặt sinh học ZeO Hương Hoa Cỏ 3.6kg",
+      "brand": "zeo",
+      "category": "Nước giặt",
+      "price": 185000,
+      "original_price": 220000,
+      "discount": "16%",
+      "specs": "Can 3.6kg, công nghệ enzyme sinh học tự nhiên, đậm đặc, an toàn cho da em bé",
+      "keywords": ["nước giặt", "nuoc giat", "zeo", "hoa cỏ", "giặt xả", "sinh học"],
+      "link_shopee": "https://shopee.vn/zeovietnam_official/nuoc-giat-sinh-hoc-zeo-3-6kg"
+    },
+    {
+      "id": "zeo-02",
+      "name": "Nước rửa chén sinh học ZeO Tinh Dầu Gừng Sả 800g",
+      "brand": "zeo",
+      "category": "Nước rửa chén",
+      "price": 45000,
+      "original_price": 55000,
+      "discount": "18%",
+      "specs": "Chai 800g, chiết xuất gừng sả khử mùi tanh triệt để, không hại da tay",
+      "keywords": ["nước rửa chén", "nuoc rua chen", "rửa bát", "gừng sả", "zeo"],
+      "link_shopee": "https://shopee.vn/zeovietnam_official/nuoc-rua-chen-zeo-800g"
+    },
+    {
+      "id": "zeo-03",
+      "name": "Nước lau sàn sinh học ZeO Hương Quế 1L",
+      "brand": "zeo",
+      "category": "Nước lau sàn",
+      "price": 52000,
+      "original_price": 65000,
+      "discount": "20%",
+      "specs": "Chai 1L, xua đuổi côn trùng, khô nhanh, không bết dính",
+      "keywords": ["nước lau sàn", "nuoc lau san", "lau nhà", "hương quế", "zeo"],
+      "link_shopee": "https://shopee.vn/zeovietnam_official/nuoc-lau-san-zeo-1L"
+    },
+    {
+      "id": "cfc-01",
+      "name": "Phân bón hữu cơ sinh học CFC Cò Bay Cần Thơ 25kg",
+      "brand": "cfc",
+      "category": "Phân bón hữu cơ",
+      "price": 320000,
+      "original_price": 350000,
+      "discount": "9%",
+      "specs": "Bao 25kg, hàm lượng hữu cơ cao, cải tạo đất bạc màu, kích rễ cây ăn trái",
+      "keywords": ["phân bón", "phan bon", "cò bay", "co bay", "hữu cơ", "cần thơ"],
+      "link_shopee": "https://shopee.vn/cfccobay_official/phan-bon-huu-co-co-bay-25kg"
+    },
+    {
+      "id": "cfc-02",
+      "name": "Dinh dưỡng cây trồng cao cấp CFC Cò Bay Can 5L",
+      "brand": "cfc",
+      "category": "Dinh dưỡng cây trồng",
+      "price": 280000,
+      "original_price": 310000,
+      "discount": "10%",
+      "specs": "Can 5L, bổ sung trung vi lượng, tăng đậu trái, chống rụng hoa",
+      "keywords": ["dinh dưỡng cây", "trung vi lượng", "kích hoa", "đậu trái", "cfc"],
+      "link_shopee": "https://shopee.vn/cfccobay_official/dinh-duong-cay-trong-cfc-5l"
+    }
+  ]
+}
