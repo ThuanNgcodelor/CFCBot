@@ -65,8 +65,14 @@ CFCbot status
 CFCbot logs
 ```
 
-See [the current implementation direction](chatbot/plan/PLAN_DINH_HUONG_CAP_NHAT_CFCBOT_QUEUE_OCR_TELEGRAM_2026-10-01.md)
-before implementing queue, OCR, Telegram Sales routing or reducing n8n.
+Planning documents:
+
+- [Feature improvement roadmap](PLAN_NANG_CAP_TINH_NANG_CFCBOT_2026-10-01.md)
+  — product priorities, user journeys, phases, KPI and acceptance gates.
+- [Current technical direction](chatbot/plan/PLAN_DINH_HUONG_CAP_NHAT_CFCBOT_QUEUE_OCR_TELEGRAM_2026-10-01.md)
+  — queue, OCR, Telegram routing, rollout and rollback architecture.
+- [Migration plan](PLAN_DI_CHUYEN_CHATBOT_TU_JAVIS_OS_2026-09-30.md)
+  — historical cutover plan from Javis OS to CFCBot.
 
 Test evidence is recorded in
 [`docs/operations/TEST_REPORT_2026-09-30.md`](docs/operations/TEST_REPORT_2026-09-30.md).
