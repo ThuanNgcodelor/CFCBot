@@ -36,7 +36,7 @@ chmod 600 runtime/data/sales-routes.json
 ```dotenv
 TELEGRAM_BOT_TOKEN=<token-from-password-manager>
 TELEGRAM_SALES_TRIAGE_DESTINATION=triage
-TELEGRAM_SALES_DESTINATIONS_JSON={"triage":"-100...","sales_can_tho":"-100...","sales_hau_giang":"-100..."}
+TELEGRAM_SALES_DESTINATIONS_JSON='{"triage":"-100...","sales_can_tho":"-100...","sales_hau_giang":"-100..."}'
 SALES_HANDOFF_ENABLED=false
 SALES_HANDOFF_SHADOW=true
 ```

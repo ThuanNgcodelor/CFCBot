@@ -223,14 +223,32 @@ class MessagingRuntime:
             status="shadow" if self.config.sales_shadow or not self.config.sales_enabled else "pending"))
 
     def _sales_message(self, payload: dict[str, Any]) -> str:
-        safe = lambda value: html.escape(str(value or "Chưa có"))
-        return ("🌾 <b>LEAD CFCBOT</b>\n\n"
-                f"🆔 <b>Lead:</b> <code>{safe(payload.get('lead_id'))}</code>\n"
-                f"👤 <b>Khách:</b> {safe(payload.get('fb_name'))}\n"
-                f"📞 <b>Liên hệ:</b> {safe(payload.get('phone'))}\n"
-                f"📍 <b>Khu vực:</b> {safe(payload.get('area'))}\n"
-                f"🎯 <b>Nhu cầu:</b> {safe(payload.get('need'))}\n"
-                f"🔀 <b>Tuyến:</b> {safe(payload.get('destination_key'))}")
+        def safe(value: Any, fallback: str = "Chưa cung cấp") -> str:
+            return html.escape(str(value or fallback).strip())
+
+        destination_labels = {
+            "triage": "Nhóm chung — cần phân sale",
+            "sales_can_tho": "Sale khu vực Cần Thơ",
+            "sales_hau_giang": "Sale khu vực Hậu Giang",
+        }
+        lead_id = str(payload.get("lead_id") or "")
+        short_id = f"CFC-{lead_id[-6:].upper()}" if lead_id else "CFC-N/A"
+        phone = safe(payload.get("phone"))
+        phone_raw = str(payload.get("phone") or "").strip()
+        phone_line = f'<a href="tel:{html.escape(phone_raw, quote=True)}">{phone}</a>' if phone_raw else phone
+        customer = safe(payload.get("fb_name"), "Khách từ Facebook")
+        area = safe(payload.get("area"))
+        need = safe(payload.get("need"), "Cần tư vấn sản phẩm")
+        destination = safe(destination_labels.get(str(payload.get("destination_key") or ""), "Nhóm chung"))
+        return ("🌾 <b>KHÁCH HÀNG MỚI — CFC CÒ BAY</b>\n"
+                "━━━━━━━━━━━━━━━━\n"
+                f"👤 <b>Khách hàng:</b> {customer}\n"
+                f"📞 <b>Số điện thoại:</b> {phone_line}\n"
+                f"📍 <b>Khu vực:</b> {area}\n"
+                f"🛒 <b>Nhu cầu:</b> {need}\n"
+                f"🏷 <b>Mã tiếp nhận:</b> <code>{short_id}</code>\n"
+                f"📌 <b>Phân công:</b> {destination}\n"
+                "\n<i>Vui lòng có người nhận và liên hệ lại với khách.</i>")
 
     async def _sales_delivery_loop(self) -> None:
         while True:

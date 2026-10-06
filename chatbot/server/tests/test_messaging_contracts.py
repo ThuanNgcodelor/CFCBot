@@ -64,6 +64,22 @@ class MessagingRepositoryTests(unittest.IsolatedAsyncioTestCase):
 
 
 class MessagingRuntimeTests(unittest.IsolatedAsyncioTestCase):
+    async def test_sales_message_is_human_readable(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            runtime = MessagingRuntime(config(Path(tmp)))
+            message = runtime._sales_message({
+                "lead_id": "27a7450c-8948-4af2-b225-c49900a4c0ed",
+                "fb_name": "",
+                "phone": "0900000002",
+                "area": "Cần Thơ",
+                "need": "Tôi muốn đặt 5 bao NPK Cò Bay",
+                "destination_key": "triage",
+            })
+            self.assertIn("KHÁCH HÀNG MỚI — CFC CÒ BAY", message)
+            self.assertIn("CFC-A4C0ED", message)
+            self.assertNotIn("27a7450c-8948-4af2-b225-c49900a4c0ed", message)
+            self.assertIn('href="tel:0900000002"', message)
+
     async def test_region_route_and_unknown_fallback(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

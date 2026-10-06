@@ -42,11 +42,24 @@ class MessagingConfig:
 
 
 def load_config() -> MessagingConfig:
+    raw_destinations = os.getenv("TELEGRAM_SALES_DESTINATIONS_JSON", "{}").strip()
+    destinations: dict[str, str] = {}
     try:
-        raw = json.loads(os.getenv("TELEGRAM_SALES_DESTINATIONS_JSON", "{}"))
-        destinations = {str(k): str(v) for k, v in raw.items() if str(k) and str(v)} if isinstance(raw, dict) else {}
+        raw = json.loads(raw_destinations)
+        if isinstance(raw, dict):
+            destinations = {str(k): str(v) for k, v in raw.items() if str(k) and str(v)}
     except json.JSONDecodeError:
-        destinations = {}
+        # Docker Compose dotenv interpolation can remove inner quotes from a
+        # JSON-looking unquoted value: {triage:-100...,sales_can_tho:-100...}.
+        # Accept that restricted, non-secret form while keeping JSON preferred.
+        if raw_destinations.startswith("{") and raw_destinations.endswith("}"):
+            for pair in raw_destinations[1:-1].split(","):
+                if ":" not in pair:
+                    continue
+                key, value = pair.split(":", 1)
+                key, value = key.strip().strip("\\\"'"), value.strip().strip("\\\"'")
+                if key and value:
+                    destinations[key] = value
     return MessagingConfig(
         queue_enabled=_bool("CHAT_QUEUE_ENABLED"),
         queue_shadow=_bool("CHAT_QUEUE_SHADOW"),

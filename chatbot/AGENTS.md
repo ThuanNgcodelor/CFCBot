@@ -163,6 +163,9 @@ Hệ thống hỗ trợ chuyển đổi tức thì thông qua file `chatbot/serv
      Không chắc khu vực phải về `triage`, không đoán group.
    - n8n live chưa được đổi vì `n8nac` chưa có workspace/API key. Bắt buộc pull
      live trước mọi sửa/push và không được bật queue production trước adapter gate.
+   - Telegram Sales template dùng ngôn ngữ sale tự nhiên: không gửi UUID dài hoặc
+     nhãn kỹ thuật “AI”; chỉ hiển thị mã tiếp nhận ngắn, khách, số điện thoại có
+     link gọi, khu vực, nhu cầu và nhóm phân công.
 8. **TC01/TC12 — Catalog-grounded price intake & dynamic agronomy retrieval:**
    - Câu hỏi giá CFC có sản phẩm/công thức rõ ràng đi thẳng danh mục AMIS public, hiển thị tối đa các tên/quy cách khớp rồi chỉ hỏi một lần các dữ kiện còn thiếu; không hiển thị mã nội bộ, giá hoặc tồn kho.
    - Câu nông học có crop + stage/symptom rõ ràng bỏ qua semantic planner/orchestrator, nhưng truy xuất động các FAQ `category=agronomy` theo nguyên câu hỏi và ngữ cảnh đã nhớ; không còn ánh xạ riêng TC12/sầu riêng sang intent hoặc công thức cố định trong code.
