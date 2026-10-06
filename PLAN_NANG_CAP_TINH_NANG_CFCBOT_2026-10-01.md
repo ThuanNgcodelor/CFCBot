@@ -4,6 +4,11 @@ Ngày lập: 01/10/2026
 Phạm vi: CFC Cò Bay trước, thiết kế có khả năng tái sử dụng cho ZeO.  
 Trạng thái: **Product + Engineering Roadmap — chưa phải lệnh triển khai production.**
 
+> **Cập nhật rà soát 06/10/2026:** Roadmap đã được tách thành bộ file thực thi tại
+> [plans/feature-upgrade](plans/feature-upgrade/README.md). Phase 00 mới được ưu tiên
+> trước mọi tính năng vì repo đã chuyển đường dẫn nhưng container/symlink production
+> vẫn còn tham chiếu đường dẫn cũ.
+
 ## 1. Vai trò của tài liệu
 
 Tài liệu này là plan riêng cho **tính năng mới và cải tiến sản phẩm CFCBot**.
@@ -58,12 +63,14 @@ Kết quả kinh doanh mong muốn:
 - Workflow nhận biết attachment nhưng API chưa nhận media descriptor đầy đủ.
 - Có test/replay nhưng chưa có quality dashboard và release gate thống nhất.
 - Có AMIS read/cache nhưng chưa có customer-facing CRM write an toàn.
+- Human takeover đã có state `pending/human/closed`, API claim/close và test suppress
+  bot; chưa có durable claim audit, Telegram callback, SLA và escalation hoàn chỉnh.
 
 ### Chưa có
 
 - OCR/vision pipeline cho ảnh bao phân bón.
 - Durable inbound/outbound/sales outbox và dead-letter.
-- Human takeover có trạng thái và chống bot/sale trả lời chồng nhau.
+- Human takeover end-to-end có sale identity, durable audit, SLA và callback.
 - Learning loop có phê duyệt để biến câu chưa trả lời thành tri thức mới.
 - Product analytics nối từ hội thoại -> lead -> sale claim -> kết quả.
 
@@ -275,14 +282,15 @@ Mục tiêu: tạo hoặc cập nhật lead CRM an toàn sau khi lead đã đư�
 
 ## 8. Roadmap triển khai
 
-### Phase 0 — Ổn định sau cutover (7–14 ngày)
+### Phase 0 — Ổn định đường dẫn runtime và sau cutover (7–14 ngày)
 
-Trạng thái: **đang trong observation window**.
+Trạng thái: **cần xử lý ngay việc repo đã move trước khi tiếp tục observation**.
 
 - Theo dõi CFCBot API, Redis, n8n, Ollama và Cloudflare.
 - Ghi baseline latency, lỗi, duplicate và fallback.
 - Không xóa Javis source/container/volume cũ.
 - Chốt incident/rollback runbook.
+- Rebind Compose labels, bind mount và symlink lifecycle từ đường dẫn cũ sang repo mới.
 
 Gate: không có lỗi nghiêm trọng chưa hiểu nguyên nhân; rollback đã kiểm tra.
 

@@ -72,12 +72,24 @@ services:
       CHAT_CANARY_PERCENT: ${CHAT_CANARY_PERCENT:-0}
       CHAT_CANARY_SALT: ${CHAT_CANARY_SALT:-}
       CHAT_CANARY_ALLOW_HIGH_RISK: ${CHAT_CANARY_ALLOW_HIGH_RISK:-false}
+      CHAT_QUEUE_ENABLED: ${CHAT_QUEUE_ENABLED:-false}
+      CHAT_QUEUE_SHADOW: ${CHAT_QUEUE_SHADOW:-false}
+      CHAT_BUNDLE_QUIET_MS: ${CHAT_BUNDLE_QUIET_MS:-4000}
+      CHAT_BUNDLE_MAX_WINDOW_MS: ${CHAT_BUNDLE_MAX_WINDOW_MS:-12000}
+      CHAT_SQLITE_PATH: /app/runtime-data/cfcbot.sqlite3
+      SALES_HANDOFF_ENABLED: ${SALES_HANDOFF_ENABLED:-false}
+      SALES_HANDOFF_SHADOW: ${SALES_HANDOFF_SHADOW:-true}
+      SALES_ROUTES_PATH: /app/runtime-data/sales-routes.json
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
+      TELEGRAM_SALES_DESTINATIONS_JSON: ${TELEGRAM_SALES_DESTINATIONS_JSON:-{}}
+      TELEGRAM_SALES_TRIAGE_DESTINATION: ${TELEGRAM_SALES_TRIAGE_DESTINATION:-triage}
       AMIS_CLIENT_SECRET: ${AMIS_CLIENT_SECRET:-}
       AMIS_SYNC_INTERNAL_TOKEN: ${AMIS_SYNC_INTERNAL_TOKEN:-}
       AMIS_ORDER_LOOKUP_HMAC_SECRET: ${AMIS_ORDER_LOOKUP_HMAC_SECRET:-}
       AMIS_LOYALTY_LOOKUP_HMAC_SECRET: ${AMIS_LOYALTY_LOOKUP_HMAC_SECRET:-}
     volumes:
       - ./runtime/settings.json:/app/chatbot/server/settings.json
+      - ./runtime/data:/app/runtime-data
     depends_on:
       redis:
         condition: service_healthy
@@ -119,3 +131,6 @@ services:
 volumes:
   redis-data:
     name: ${REDIS_VOLUME_NAME:-cfcbot-redis-data}
+    # This volume was adopted from the legacy Redis project. Treat it as an
+    # external production asset so Compose never tries to recreate/delete it.
+    external: true

@@ -1,6 +1,6 @@
 # 🤖 AGENTS.md — AI AGENT CONTEXT & OPERATIONAL GUIDELINES
 <!-- AI-CONTEXT-ROOT: chatbot/ -->
-<!-- LAST-UPDATED: 2026-10-01 -->
+<!-- LAST-UPDATED: 2026-10-06 -->
 
 > **DÀNH CHO AI / CODEX / COPILOT TIẾP THEO KHI MỞ THƯ MỤC NÀY:**
 > Bạn **BẮT BUỘC** phải đọc kỹ toàn bộ tài liệu này trước khi phân tích hoặc chỉnh sửa bất kỳ file nào trong `chatbot/`.
@@ -63,6 +63,7 @@ chatbot/
     ├── cfc_semantic_planner.py    # Bộ phân tích Intent chuyên sâu cho nhãn hàng CFC
     ├── admin_routes.py            # Gateway Admin Router theo mô hình DDD
     ├── domains/                   # Các Domain nghiệp vụ độc lập (Domain-Driven Design)
+    │   ├── messaging/             # Redis Stream, bundle, SQLite outbox, LeadDraft, Telegram Sales
     │   ├── amis/                  # Tích hợp MISA AMIS CRM (Live CRM, Orders, Loyalty)
     │   │   ├── live_crm.py        # Cache & tra cứu đơn hàng (chỉ lấy "Đã ghi"), hội viên
     │   │   └── ...
@@ -153,7 +154,16 @@ Hệ thống hỗ trợ chuyển đổi tức thì thông qua file `chatbot/serv
 6. **AMIS order cache last-known-good:**
    - Full Warm chỉ publish sau khi stage/commit đầy đủ; một execution lỗi không xoá snapshot đơn đang active.
    - Protected order lookup dùng snapshot thành công gần nhất trong tối đa 12 giờ. Sau 12 giờ không có sync thành công, bot fail-closed thay vì trả trạng thái đơn quá cũ.
-6. **TC01/TC12 — Catalog-grounded price intake & dynamic agronomy retrieval:**
+7. **Messaging queue và Sales handoff Phase 01–03 (06/10/2026):**
+   - `domains/messaging/` định nghĩa contract versioned, Redis Stream ingress,
+     quiet/max-window bundling, response outbox SQLite WAL và LeadDraft merge theo hội thoại.
+   - `/api/chat-pipeline` vẫn là compatibility path. Production flags mặc định off;
+     test stack `7778/6380` chạy shadow và chặn side effect Telegram cũ.
+   - Route sale chỉ đọc `runtime/data/sales-routes.json`; chat ID/token chỉ từ `.env`.
+     Không chắc khu vực phải về `triage`, không đoán group.
+   - n8n live chưa được đổi vì `n8nac` chưa có workspace/API key. Bắt buộc pull
+     live trước mọi sửa/push và không được bật queue production trước adapter gate.
+8. **TC01/TC12 — Catalog-grounded price intake & dynamic agronomy retrieval:**
    - Câu hỏi giá CFC có sản phẩm/công thức rõ ràng đi thẳng danh mục AMIS public, hiển thị tối đa các tên/quy cách khớp rồi chỉ hỏi một lần các dữ kiện còn thiếu; không hiển thị mã nội bộ, giá hoặc tồn kho.
    - Câu nông học có crop + stage/symptom rõ ràng bỏ qua semantic planner/orchestrator, nhưng truy xuất động các FAQ `category=agronomy` theo nguyên câu hỏi và ngữ cảnh đã nhớ; không còn ánh xạ riêng TC12/sầu riêng sang intent hoặc công thức cố định trong code.
    - `QueryPlan` là nguồn nhận diện crop/stage/symptom duy nhất cho conversation memory. Danh sách cây warm từ Redis và mẫu `cây <tên>` giúp ổi, nhãn và cây mới đi cùng một tuyến; không duy trì danh sách cây thứ hai trong `chat_pipeline.py`.

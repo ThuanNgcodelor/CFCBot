@@ -1,0 +1,16 @@
+{
+  "schema_version": "sales-routes.v1",
+  "default_destination_key": "triage",
+  "routes": [
+    {
+      "region_key": "mekong-can-tho",
+      "destination_key": "sales_can_tho",
+      "area_aliases": ["Cần Thơ", "Can Tho", "Ninh Kiều", "Cái Răng"]
+    },
+    {
+      "region_key": "mekong-hau-giang",
+      "destination_key": "sales_hau_giang",
+      "area_aliases": ["Hậu Giang", "Hau Giang", "Vị Thanh", "Ngã Bảy"]
+    }
+  ]
+}

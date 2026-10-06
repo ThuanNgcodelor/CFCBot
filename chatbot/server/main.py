@@ -13,12 +13,14 @@ import hmac
 import json
 import logging
 import os
+import time
+from uuid import uuid4
 from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Optional
 
 import httpx
-from fastapi import FastAPI, Header, HTTPException, Query
+from fastapi import FastAPI, Header, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
@@ -77,11 +79,17 @@ async def lifespan(app: FastAPI):
     # Khởi tạo background tasks
     task_shopee = asyncio.create_task(_periodic_shopee_sync())
     task_snapshot = asyncio.create_task(_periodic_daily_snapshot())
+    from domains.messaging import get_messaging_runtime
+    messaging_runtime = get_messaging_runtime()
+    await messaging_runtime.start()
     logger.info("CFC AI background workers initialized (Shopee 10m sync, Analytics snapshot).")
-    yield
-    # Dọn dẹp
-    task_shopee.cancel()
-    task_snapshot.cancel()
+    try:
+        yield
+    finally:
+        await messaging_runtime.stop()
+        task_shopee.cancel()
+        task_snapshot.cancel()
+        await asyncio.gather(task_shopee, task_snapshot, return_exceptions=True)
 
 
 app = FastAPI(
@@ -98,8 +106,22 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
+@app.middleware("http")
+async def trace_request(request: Request, call_next):
+    """Propagate an opaque trace ID without logging request bodies or PII."""
+    trace_id = (request.headers.get("X-Trace-Id") or str(uuid4()))[:128]
+    request.state.trace_id = trace_id
+    started = time.perf_counter()
+    response = await call_next(request)
+    response.headers["X-Trace-Id"] = trace_id
+    response.headers["X-Response-Time-Ms"] = f"{(time.perf_counter() - started) * 1000:.2f}"
+    return response
+
 # Đăng ký admin API router
 app.include_router(admin_router)
+from domains.messaging import router as messaging_router
+app.include_router(messaging_router)
 
 # Mount static folder
 static_dir = Path(__file__).parent / "static"

@@ -31,8 +31,16 @@ services:
       LLM_NLU_MODE: "off"
       CHAT_CONVERSATION_MODE: "off"
       CHAT_CANARY_MODE: "off"
+      CHAT_QUEUE_ENABLED: "false"
+      CHAT_QUEUE_SHADOW: "true"
+      CHAT_BUNDLE_QUIET_MS: "500"
+      CHAT_BUNDLE_MAX_WINDOW_MS: "1500"
+      CHAT_SQLITE_PATH: /app/runtime-data/cfcbot-test.sqlite3
+      SALES_HANDOFF_ENABLED: "false"
+      SALES_HANDOFF_SHADOW: "true"
     volumes:
       - ./runtime/settings.test.json:/app/chatbot/server/settings.json
+      - ./runtime/test-data:/app/runtime-data
     depends_on:
       redis:
         condition: service_healthy
