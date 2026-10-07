@@ -1,6 +1,6 @@
 # Phase 05 — Media ingest và OCR Product Assistant
 
-Trạng thái: **PENDING**  
+Trạng thái: **SECURITY GATE IMPLEMENTED / OCR OFF**
 Ưu tiên: **P1 Product**  
 Ước lượng: 4–7 ngày  
 Phụ thuộc: Phase 02 `DONE`; bộ ảnh test và retention policy đã được duyệt.  
@@ -114,6 +114,13 @@ Không commit URL ảnh, token hoặc media artifacts.
 - Không xóa media metadata cần điều tra trước TTL.
 - Khi OCR lỗi diện rộng, chuyển attachment acknowledgment/fallback đã duyệt.
 
+## 8. Đã triển khai
+
+- `MediaInspectRequest/Response` và HTTPS/allowlist/private-host/size gate.
+- Chặn loopback/private DNS, scheme không phải HTTPS và file vượt kích thước.
+- `MEDIA_INGEST_ENABLED=false`, `OCR_ENABLED=false` production; chưa tải ảnh hoặc
+  gọi OCR thật khi provider/dataset chưa được owner duyệt.
+
 ## 8. Exit gate
 
 - Dataset/ground truth đủ đại diện.
@@ -121,4 +128,3 @@ Không commit URL ảnh, token hoặc media artifacts.
 - Shadow/canary đạt precision và latency gate.
 - Complaint route và low-confidence fallback pass.
 - Rollback không ảnh hưởng queue/text chat.
-

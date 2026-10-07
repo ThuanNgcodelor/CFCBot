@@ -166,6 +166,13 @@ Hệ thống hỗ trợ chuyển đổi tức thì thông qua file `chatbot/serv
    - Telegram Sales template dùng ngôn ngữ sale tự nhiên: không gửi UUID dài hoặc
      nhãn kỹ thuật “AI”; chỉ hiển thị mã tiếp nhận ngắn, khách, số điện thoại có
      link gọi, khu vực, nhu cầu và nhóm phân công.
+8. **Phone qualification và Phase 4–6 (06/10/2026):**
+   - Queue path mặc định `LEAD_REQUIRE_PHONE=true`: commercial intent chưa có số
+     chỉ nhận response xin số + Redis pending contact; chỉ lượt có số mới tạo LeadDraft.
+   - Handoff claim/contacted/close có actor, idempotency, SLA due và SQLite audit;
+     `HANDOFF_ENABLED=false` production cho đến khi role/SLA được duyệt.
+   - Media inspect chặn SSRF/private host/HTTP/file quá lớn; OCR vẫn off vì chưa có
+     provider/dataset được duyệt. Memory facts có scope brand/sender nhưng API off.
 8. **TC01/TC12 — Catalog-grounded price intake & dynamic agronomy retrieval:**
    - Câu hỏi giá CFC có sản phẩm/công thức rõ ràng đi thẳng danh mục AMIS public, hiển thị tối đa các tên/quy cách khớp rồi chỉ hỏi một lần các dữ kiện còn thiếu; không hiển thị mã nội bộ, giá hoặc tồn kho.
    - Câu nông học có crop + stage/symptom rõ ràng bỏ qua semantic planner/orchestrator, nhưng truy xuất động các FAQ `category=agronomy` theo nguyên câu hỏi và ngữ cảnh đã nhớ; không còn ánh xạ riêng TC12/sầu riêng sang intent hoặc công thức cố định trong code.

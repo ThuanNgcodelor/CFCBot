@@ -35,6 +35,14 @@ class MessagingConfig:
     sales_destinations: dict[str, str]
     triage_destination: str
     telegram_bot_token: str
+    handoff_enabled: bool
+    sla_default_minutes: int
+    media_enabled: bool
+    ocr_enabled: bool
+    media_max_bytes: int
+    media_allowed_hosts: tuple[str, ...]
+    memory_facts_enabled: bool
+    lead_require_phone: bool
 
     @property
     def queue_mode(self) -> str:
@@ -76,4 +84,12 @@ def load_config() -> MessagingConfig:
         sales_destinations=destinations,
         triage_destination=os.getenv("TELEGRAM_SALES_TRIAGE_DESTINATION", "triage"),
         telegram_bot_token=os.getenv("TELEGRAM_BOT_TOKEN", ""),
+        handoff_enabled=_bool("HANDOFF_ENABLED"),
+        sla_default_minutes=max(1, _int("HANDOFF_SLA_DEFAULT_MINUTES", 30)),
+        media_enabled=_bool("MEDIA_INGEST_ENABLED"),
+        ocr_enabled=_bool("OCR_ENABLED"),
+        media_max_bytes=max(1024, _int("MEDIA_MAX_BYTES", 10 * 1024 * 1024)),
+        media_allowed_hosts=tuple(item.strip().lower() for item in os.getenv("MEDIA_ALLOWED_HOSTS", "").split(",") if item.strip()),
+        memory_facts_enabled=_bool("MEMORY_FACTS_ENABLED"),
+        lead_require_phone=_bool("LEAD_REQUIRE_PHONE", True),
     )

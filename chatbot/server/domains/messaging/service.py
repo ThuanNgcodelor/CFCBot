@@ -180,6 +180,9 @@ class MessagingRuntime:
                 response = await process_chat_pipeline(request)
             payload = response.model_dump(mode="json")
             payload.update(trace_id=bundle.trace_id, bundle_event_count=len(ordered))
+            if self.config.lead_require_phone and self._needs_contact(payload):
+                payload["answer"] = self._contact_request_reply(payload)
+                payload["lead_stage"] = "collecting_contact"
             await self.repository.insert_response(ResponseOutboxEventV1(
                 trace_id=bundle.trace_id, idempotency_key=f"bundle:{bundle.bundle_id}:customer-response",
                 bundle_id=bundle.bundle_id, brand=bundle.brand, sender_id=bundle.sender_id, payload=payload,
@@ -189,6 +192,22 @@ class MessagingRuntime:
             self.metrics["pipeline_errors"] += 1
             logger.exception("Bundle processing failed bundle_id=%s: %s", bundle.bundle_id, exc)
             await self.redis.xadd("cfcbot:dead-letter:response:v1", {"bundle_id": bundle.bundle_id, "error": str(exc)[:500]})
+
+    @staticmethod
+    def _needs_contact(payload: dict[str, Any]) -> bool:
+        if str(payload.get("phone") or "").strip():
+            return False
+        intent = str(payload.get("intent") or "")
+        stage = str(payload.get("lead_stage") or "")
+        return intent in COMMERCIAL_INTENTS or stage in {"hot", "qualified", "browsing_catalog"} and bool(payload.get("area"))
+
+    @staticmethod
+    def _contact_request_reply(payload: dict[str, Any]) -> str:
+        area = str(payload.get("area") or "").strip()
+        area_hint = f" khu vực {area}" if area else ""
+        return ("Dạ mình đã ghi nhận nhu cầu của bạn" + area_hint + ". "
+                "Bạn cho mình xin số điện thoại để nhân viên kinh doanh liên hệ tư vấn "
+                "sản phẩm, quy cách và giao hàng chính xác nhé.")
 
     def _route(self, area: str) -> tuple[str, str]:
         route_data: dict[str, Any] = {}
@@ -209,12 +228,21 @@ class MessagingRuntime:
         intent = str(payload.get("intent") or "")
         if intent not in COMMERCIAL_INTENTS and str(payload.get("lead_stage") or "") not in {"hot", "qualified"}:
             return
+        phone = str(payload.get("phone") or "").strip()
+        if self.config.lead_require_phone and not phone:
+            if self.redis is not None:
+                pending_key = f"cfcbot:pending-contact:{bundle.brand}:{bundle.sender_id}"
+                await self.redis.set(pending_key, json.dumps({
+                    "trace_id": bundle.trace_id, "brand": bundle.brand, "sender_id": bundle.sender_id,
+                    "need": text[:1000], "intent": intent, "area": str(payload.get("area") or ""),
+                }, ensure_ascii=False), ex=86400)
+            return
         area = str(payload.get("area") or "")
         destination, confidence = self._route(area)
         lead = await self.repository.upsert_lead(LeadDraftV1(
             lead_id=str(uuid4()), trace_id=bundle.trace_id, conversation_key=f"{bundle.brand}:{bundle.sender_id}",
             brand=bundle.brand, sender_id=bundle.sender_id, fb_name=last.fb_name,
-            phone=str(payload.get("phone") or ""), area=area, need=text[:1000], intent=intent,
+            phone=phone, area=area, need=text[:1000], intent=intent,
             destination_key=destination, route_confidence=confidence))
         await self.repository.insert_sales(SalesOutboxEventV1(
             trace_id=bundle.trace_id, idempotency_key=f"lead:{lead.lead_id}:v:{lead.version}:sales-handoff",

@@ -3,6 +3,7 @@ import json
 import sys
 import tempfile
 import unittest
+from dataclasses import replace
 from datetime import datetime, timezone
 from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
@@ -12,7 +13,8 @@ if str(SERVER_DIR) not in sys.path:
     sys.path.insert(0, str(SERVER_DIR))
 
 from domains.messaging.config import MessagingConfig
-from domains.messaging.contracts import ConversationBundleV1, InboundEventV1, LeadDraftV1, ResponseOutboxEventV1
+from domains.messaging.contracts import ConversationBundleV1, HandoffActionV1, InboundEventV1, LeadDraftV1, MediaInspectRequest, MemoryFactV1, ResponseOutboxEventV1
+from domains.messaging.media import inspect_media
 from domains.messaging.repository import MessagingRepository
 from domains.messaging.service import MessagingRuntime
 
@@ -24,7 +26,10 @@ def config(root: Path, routes: Path | None = None) -> MessagingConfig:
         sqlite_path=root / "test.sqlite3", control_key="test-key",
         sales_enabled=False, sales_shadow=True,
         sales_routes_path=routes or root / "routes.json", sales_destinations={},
-        triage_destination="triage", telegram_bot_token="")
+        triage_destination="triage", telegram_bot_token="", handoff_enabled=True,
+        sla_default_minutes=30, media_enabled=False, ocr_enabled=False,
+        media_max_bytes=10 * 1024 * 1024, media_allowed_hosts=(),
+        memory_facts_enabled=True, lead_require_phone=True)
 
 
 class MessagingContractTests(unittest.TestCase):
@@ -62,8 +67,33 @@ class MessagingRepositoryTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(second.version, 2)
         self.assertEqual(second.need, "Tôi muốn mua NPK")
 
+    async def test_handoff_claim_is_atomic_and_idempotent(self):
+        lead = LeadDraftV1(lead_id="lead-claim", trace_id="t1", conversation_key="cfc:claim", brand="cfc", sender_id="claim", phone="0900000000")
+        await self.repo.upsert_lead(lead)
+        action = HandoffActionV1(actor_id="sale-a", reason="nhận lead", idempotency_key="claim-1")
+        result = await self.repo.handoff_transition("lead-claim", action, "claimed")
+        self.assertEqual(result["status"], "claimed")
+        again = await self.repo.handoff_transition("lead-claim", action, "claimed")
+        self.assertTrue(again["idempotent"])
+        with self.assertRaises(ValueError):
+            await self.repo.handoff_transition("lead-claim", HandoffActionV1(actor_id="sale-b", idempotency_key="claim-2"), "claimed")
+
+    async def test_memory_fact_is_scoped_to_sender(self):
+        fact = MemoryFactV1(brand="cfc", sender_id="memory-1", fact_type="crop", value="sầu riêng", confirmed=True)
+        await self.repo.save_fact(fact)
+        self.assertEqual(len(await self.repo.list_facts("cfc", "memory-1")), 1)
+        self.assertEqual(await self.repo.list_facts("cfc", "memory-2"), [])
+
 
 class MessagingRuntimeTests(unittest.IsolatedAsyncioTestCase):
+    async def test_media_gate_blocks_private_host_and_shadows_public_host(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            cfg = replace(config(Path(tmp)), media_enabled=True, media_allowed_hosts=("93.184.216.34",))
+            private = inspect_media(MediaInspectRequest(source_url="http://127.0.0.1/image.jpg"), cfg)
+            self.assertEqual(private.status, "blocked")
+            public = inspect_media(MediaInspectRequest(source_url="https://93.184.216.34/image.jpg"), cfg)
+            self.assertEqual(public.status, "shadow")
+
     async def test_sales_message_is_human_readable(self):
         with tempfile.TemporaryDirectory() as tmp:
             runtime = MessagingRuntime(config(Path(tmp)))
@@ -108,8 +138,24 @@ class MessagingRuntimeTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(request.text, "Tôi muốn mua\nNPK\n10 bao\nở Cần Thơ")
             counts = await runtime.repository.counts()
             self.assertEqual(counts["response_outbox"].get("shadow"), 1)
-            self.assertEqual(counts["lead_drafts"].get("draft"), 1)
-            self.assertEqual(counts["sales_outbox"].get("shadow"), 1)
+            self.assertEqual(counts["lead_drafts"].get("draft"), None)
+            self.assertEqual(counts["sales_outbox"].get("shadow"), None)
+
+    async def test_phone_is_required_before_lead_creation(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            runtime = MessagingRuntime(config(root))
+            await runtime.repository.initialize()
+            now = datetime.now(timezone.utc)
+            bundle = ConversationBundleV1(bundle_id="b-phone", trace_id="trace-phone", brand="cfc", sender_id="s-phone", events=[InboundEventV1(idempotency_key="phone-1", sender_id="s-phone", message_id="phone-1", text="Tôi muốn mua NPK", platform_timestamp=now)], opened_at=now, due_at=now, max_due_at=now)
+            response = MagicMock()
+            response.model_dump.return_value = {"answer": "Đã nhận", "intent": "cfc_purchase_request", "lead_stage": "new", "phone": "", "area": "Cần Thơ"}
+            runtime.redis = AsyncMock()
+            with patch("domains.messaging.service.process_chat_pipeline", AsyncMock(return_value=response)):
+                await runtime._process_bundle(bundle)
+            stored = await runtime.repository.list_rows("response_outbox")
+            self.assertIn("cho mình xin số điện thoại", stored[0]["payload"]["answer"].lower())
+            self.assertEqual((await runtime.repository.counts())["lead_drafts"], {})
 
 
 if __name__ == "__main__":

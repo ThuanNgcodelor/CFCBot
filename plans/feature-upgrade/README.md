@@ -49,9 +49,10 @@ flowchart TD
 | 01 | [Contracts và observability](PHASE_01_EVENT_CONTRACTS_AND_OBSERVABILITY.md) | SHADOW / n8n BLOCKED | 2–4 ngày |
 | 02 | [Queue, bundling và response outbox](PHASE_02_QUEUE_BUNDLING_RESPONSE_OUTBOX.md) | SHADOW VALIDATED | 3–5 ngày |
 | 03 | [LeadDraft và Telegram routing](PHASE_03_LEAD_TELEGRAM_ROUTING.md) | SHADOW / SETUP PENDING | 3–5 ngày |
-| 04 | [Human takeover và SLA](PHASE_04_HUMAN_TAKEOVER_AND_SLA.md) | PENDING | 2–4 ngày |
-| 05 | [Media ingest và OCR](PHASE_05_MEDIA_OCR.md) | PENDING | 4–7 ngày |
-| 06 | [Memory, knowledge và evaluation](PHASE_06_MEMORY_KNOWLEDGE_EVALUATION.md) | PENDING | 5–10 ngày |
+| 03.1 | [Phone qualification](PHASE_03_1_PHONE_QUALIFICATION.md) | IMPLEMENTED | 1–2 ngày |
+| 04 | [Human takeover và SLA](PHASE_04_HUMAN_TAKEOVER_AND_SLA.md) | IMPLEMENTED / FLAG OFF | 2–4 ngày |
+| 05 | [Media ingest và OCR](PHASE_05_MEDIA_OCR.md) | SECURITY GATE / OCR OFF | 4–7 ngày |
+| 06 | [Memory, knowledge và evaluation](PHASE_06_MEMORY_KNOWLEDGE_EVALUATION.md) | FACT API / FLAG OFF | 5–10 ngày |
 | 07 | [Dashboard vận hành và kinh doanh](PHASE_07_OPERATIONS_PRODUCT_DASHBOARD.md) | PENDING | 4–7 ngày |
 | 08 | [CRM write gateway](PHASE_08_CRM_WRITE_GATEWAY.md) | PENDING | 4–8 ngày |
 | 09 | [Multi-channel và sale copilot](PHASE_09_MULTICHANNEL_SALES_COPILOT.md) | LAST | 7–14 ngày |

@@ -8,7 +8,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-from .contracts import LeadDraftV1, ResponseOutboxEventV1, SalesOutboxEventV1
+from .contracts import HandoffActionV1, LeadDraftV1, MemoryFactV1, ResponseOutboxEventV1, SalesOutboxEventV1
 
 
 def _now() -> str:
@@ -52,6 +52,17 @@ class MessagingRepository:
                   created_at TEXT NOT NULL, updated_at TEXT NOT NULL);
                 CREATE INDEX IF NOT EXISTS idx_response_status ON response_outbox(status, created_at);
                 CREATE INDEX IF NOT EXISTS idx_sales_status ON sales_outbox(status, created_at);
+                CREATE TABLE IF NOT EXISTS handoff_audit (
+                  audit_id TEXT PRIMARY KEY, lead_id TEXT NOT NULL, conversation_key TEXT NOT NULL,
+                  action_key TEXT NOT NULL UNIQUE, previous_state TEXT NOT NULL, new_state TEXT NOT NULL,
+                  actor_id TEXT NOT NULL, reason TEXT NOT NULL, sla_due_at TEXT NOT NULL, created_at TEXT NOT NULL);
+                CREATE INDEX IF NOT EXISTS idx_handoff_lead ON handoff_audit(lead_id, created_at);
+                CREATE TABLE IF NOT EXISTS memory_facts (
+                  fact_id TEXT PRIMARY KEY, brand TEXT NOT NULL, sender_id TEXT NOT NULL,
+                  fact_type TEXT NOT NULL, value TEXT NOT NULL, source_event_id TEXT NOT NULL,
+                  confidence REAL NOT NULL, identity_scope TEXT NOT NULL, confirmed INTEGER NOT NULL,
+                  collected_at TEXT NOT NULL, expires_at TEXT NOT NULL DEFAULT '');
+                CREATE INDEX IF NOT EXISTS idx_memory_scope ON memory_facts(brand, sender_id, fact_type, collected_at);
             """)
 
     async def initialize(self) -> None:
@@ -156,3 +167,54 @@ class MessagingRepository:
 
     async def mark_delivery(self, table: str, event_id: str, status: str, external_id: str = "", error: str = "") -> None:
         await asyncio.to_thread(self._mark_sync, table, event_id, status, external_id, error)
+
+    def _handoff_sync(self, lead_id: str, action: HandoffActionV1, target: str) -> dict[str, Any]:
+        import uuid
+        with self._lock, self._connect() as conn:
+            lead = conn.execute("SELECT * FROM lead_drafts WHERE lead_id = ?", (lead_id,)).fetchone()
+            if not lead:
+                raise KeyError("lead_not_found")
+            existing = conn.execute("SELECT * FROM handoff_audit WHERE action_key = ?", (action.idempotency_key,)).fetchone()
+            if existing:
+                return {"lead_id": lead_id, "status": existing["new_state"], "idempotent": True, "audit_id": existing["audit_id"]}
+            payload = json.loads(lead["payload_json"])
+            handoff = payload.get("handoff") if isinstance(payload.get("handoff"), dict) else {}
+            previous = str(handoff.get("status") or "routed")
+            if target == "claimed" and previous in {"claimed", "contacted", "closed"} and handoff.get("actor_id") != action.actor_id:
+                raise ValueError("lead_already_claimed")
+            if target == "contacted" and previous != "claimed":
+                raise ValueError("lead_not_claimed")
+            if target == "closed" and previous not in {"claimed", "contacted"}:
+                raise ValueError("lead_not_active")
+            now = _now()
+            due = (datetime.now(timezone.utc) + __import__("datetime").timedelta(minutes=action.sla_minutes)).isoformat() if target == "claimed" else str(handoff.get("sla_due_at") or "")
+            payload["handoff"] = {"status": target, "actor_id": action.actor_id, "reason": action.reason, "sla_due_at": due, "updated_at": now}
+            conn.execute("UPDATE lead_drafts SET payload_json=?, updated_at=? WHERE lead_id=?", (json.dumps(payload, ensure_ascii=False), now, lead_id))
+            audit_id = str(uuid.uuid4())
+            conn.execute("""INSERT INTO handoff_audit
+              (audit_id, lead_id, conversation_key, action_key, previous_state, new_state, actor_id, reason, sla_due_at, created_at)
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""", (audit_id, lead_id, lead["conversation_key"], action.idempotency_key, previous, target, action.actor_id, action.reason, due, now))
+            return {"lead_id": lead_id, "status": target, "idempotent": False, "audit_id": audit_id, "sla_due_at": due}
+
+    async def handoff_transition(self, lead_id: str, action: HandoffActionV1, target: str) -> dict[str, Any]:
+        return await asyncio.to_thread(self._handoff_sync, lead_id, action, target)
+
+    def _facts_sync(self, fact: MemoryFactV1) -> dict[str, Any]:
+        with self._lock, self._connect() as conn:
+            conn.execute("""INSERT OR REPLACE INTO memory_facts
+              (fact_id, brand, sender_id, fact_type, value, source_event_id, confidence, identity_scope, confirmed, collected_at, expires_at)
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""", (fact.fact_id, fact.brand, fact.sender_id, fact.fact_type, fact.value,
+              fact.source_event_id, fact.confidence, fact.identity_scope, int(fact.confirmed), fact.collected_at.isoformat(), fact.expires_at.isoformat() if fact.expires_at else ""))
+            return fact.model_dump(mode="json")
+
+    async def save_fact(self, fact: MemoryFactV1) -> dict[str, Any]:
+        return await asyncio.to_thread(self._facts_sync, fact)
+
+    def _list_facts_sync(self, brand: str, sender_id: str, limit: int) -> list[dict[str, Any]]:
+        with self._lock, self._connect() as conn:
+            rows = conn.execute("""SELECT * FROM memory_facts WHERE brand=? AND sender_id=?
+              ORDER BY collected_at DESC LIMIT ?""", (brand, sender_id, max(1, min(limit, 100)))).fetchall()
+            return [dict(row) for row in rows]
+
+    async def list_facts(self, brand: str, sender_id: str, limit: int = 50) -> list[dict[str, Any]]:
+        return await asyncio.to_thread(self._list_facts_sync, brand, sender_id, limit)

@@ -106,6 +106,43 @@ class DeliveryResultV1(BaseModel):
     occurred_at: datetime = Field(default_factory=utc_now)
 
 
+class HandoffActionV1(BaseModel):
+    actor_id: str = Field(min_length=1, max_length=120)
+    reason: str = Field(default="", max_length=500)
+    idempotency_key: str = Field(min_length=1, max_length=255)
+    sla_minutes: int = Field(default=30, ge=1, le=1440)
+
+
+class MemoryFactV1(BaseModel):
+    schema_version: Literal["memory-fact.v1"] = "memory-fact.v1"
+    fact_id: str = Field(default_factory=lambda: str(uuid4()))
+    brand: str
+    sender_id: str
+    fact_type: str = Field(min_length=1, max_length=80)
+    value: str = Field(min_length=1, max_length=500)
+    source_event_id: str = ""
+    confidence: float = Field(default=1.0, ge=0.0, le=1.0)
+    identity_scope: str = "conversation"
+    confirmed: bool = False
+    collected_at: datetime = Field(default_factory=utc_now)
+    expires_at: Optional[datetime] = None
+
+
+class MediaInspectRequest(BaseModel):
+    media_type: Literal["image", "audio", "video", "file", "unknown"] = "image"
+    source_url: str = Field(min_length=1, max_length=2048, repr=False)
+    mime_hint: str = ""
+    content_length: Optional[int] = Field(default=None, ge=0)
+
+
+class MediaInspectResponse(BaseModel):
+    accepted: bool
+    status: Literal["disabled", "blocked", "shadow", "ready"]
+    reason: str = ""
+    ocr_text: str = ""
+    candidates: list[dict[str, Any]] = Field(default_factory=list)
+
+
 class EnqueueResponse(BaseModel):
     accepted: bool
     duplicate: bool = False

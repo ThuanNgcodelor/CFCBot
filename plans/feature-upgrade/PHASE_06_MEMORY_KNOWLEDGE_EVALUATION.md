@@ -1,6 +1,6 @@
 # Phase 06 — Conversation Memory 2.0, Knowledge Governance và Evaluation Gate
 
-Trạng thái: **PENDING**  
+Trạng thái: **FACT API IMPLEMENTED / GOVERNANCE PENDING**
 Ưu tiên: **P1 Quality**  
 Ước lượng: 5–10 ngày  
 Phụ thuộc: Phase 02 `DONE`; Phase 01 contracts/trace ổn định.  
@@ -113,3 +113,10 @@ draft -> review -> approved -> published -> retired
 - Blocking evaluation gate hoạt động trong CI/release flow.
 - Dashboard data contract sẵn sàng cho Phase 07.
 
+## 9. Đã triển khai
+
+- `MemoryFactV1` và SQLite `memory_facts` có scope brand/sender, confidence,
+  source event, confirmation và expiry.
+- Authenticated save/list API; `MEMORY_FACTS_ENABLED=false` production.
+- Knowledge lifecycle, replay evaluation gate và dashboard quality chưa bật; cần
+  dataset/owner review trước khi chuyển blocking gate.

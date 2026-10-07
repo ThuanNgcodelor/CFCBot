@@ -1,6 +1,6 @@
 # Phase 04 — Hoàn thiện human takeover, claim và SLA
 
-Trạng thái: **PENDING**  
+Trạng thái: **IMPLEMENTED / FLAG OFF — core claim/audit**
 Ưu tiên: **P0 Business Safety**  
 Ước lượng: 2–4 ngày  
 Phụ thuộc: Phase 03 `DONE`  
@@ -111,3 +111,10 @@ Transition phải có actor, timestamp, reason, previous/new state và idempoten
 - Manual fallback và rollback diễn tập xong.
 - Dữ liệu handoff sẵn sàng cho dashboard Phase 07.
 
+## 9. Đã triển khai
+
+- `HandoffActionV1`, authenticated claim/contacted/close routes.
+- SQLite WAL `handoff_audit`, idempotency action và compare-and-set claim.
+- SLA due timestamp được lưu theo actor/action.
+- `HANDOFF_ENABLED=false` production; Telegram inline buttons và escalation worker
+  vẫn để phần pilot sau khi owner duyệt role/SLA.

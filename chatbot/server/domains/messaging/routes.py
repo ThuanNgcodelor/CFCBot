@@ -5,7 +5,8 @@ from typing import Optional
 
 from fastapi import APIRouter, Header, HTTPException, Query
 
-from .contracts import DeliveryResultV1, EnqueueResponse, InboundEventV1
+from .contracts import DeliveryResultV1, EnqueueResponse, HandoffActionV1, InboundEventV1, MediaInspectRequest, MemoryFactV1
+from .media import inspect_media
 from .service import get_messaging_runtime
 
 router = APIRouter(prefix="/api/messaging", tags=["Messaging Queue"])
@@ -60,3 +61,54 @@ async def record_response_delivery(
         error=result.error_code,
     )
     return {"ok": True, "event_id": event_id, "status": status}
+
+
+async def _handoff(lead_id: str, target: str, action: HandoffActionV1, key: Optional[str]):
+    _require_control_key(key)
+    runtime = get_messaging_runtime()
+    if not runtime.config.handoff_enabled:
+        raise HTTPException(status_code=503, detail="handoff actions are disabled")
+    try:
+        return await runtime.repository.handoff_transition(lead_id, action, target)
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail="lead not found") from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+
+
+@router.post("/leads/{lead_id}/claim")
+async def claim_lead(lead_id: str, action: HandoffActionV1, x_conversation_control_key: Optional[str] = Header(default=None)):
+    return await _handoff(lead_id, "claimed", action, x_conversation_control_key)
+
+
+@router.post("/leads/{lead_id}/contacted")
+async def mark_lead_contacted(lead_id: str, action: HandoffActionV1, x_conversation_control_key: Optional[str] = Header(default=None)):
+    return await _handoff(lead_id, "contacted", action, x_conversation_control_key)
+
+
+@router.post("/leads/{lead_id}/close")
+async def close_lead(lead_id: str, action: HandoffActionV1, x_conversation_control_key: Optional[str] = Header(default=None)):
+    return await _handoff(lead_id, "closed", action, x_conversation_control_key)
+
+
+@router.post("/media/inspect")
+async def inspect_media_endpoint(req: MediaInspectRequest) :
+    return inspect_media(req, get_messaging_runtime().config)
+
+
+@router.post("/memory/facts")
+async def save_memory_fact(fact: MemoryFactV1, x_conversation_control_key: Optional[str] = Header(default=None)):
+    _require_control_key(x_conversation_control_key)
+    runtime = get_messaging_runtime()
+    if not runtime.config.memory_facts_enabled:
+        raise HTTPException(status_code=503, detail="memory facts are disabled")
+    return await runtime.repository.save_fact(fact)
+
+
+@router.get("/memory/facts/{brand}/{sender_id}")
+async def list_memory_facts(brand: str, sender_id: str, limit: int = Query(50, ge=1, le=100), x_conversation_control_key: Optional[str] = Header(default=None)):
+    _require_control_key(x_conversation_control_key)
+    runtime = get_messaging_runtime()
+    if not runtime.config.memory_facts_enabled:
+        raise HTTPException(status_code=503, detail="memory facts are disabled")
+    return {"items": await runtime.repository.list_facts(brand, sender_id, limit)}

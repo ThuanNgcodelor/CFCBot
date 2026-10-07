@@ -38,6 +38,12 @@ services:
       CHAT_SQLITE_PATH: /app/runtime-data/cfcbot-test.sqlite3
       SALES_HANDOFF_ENABLED: "false"
       SALES_HANDOFF_SHADOW: "true"
+      LEAD_REQUIRE_PHONE: "true"
+      HANDOFF_ENABLED: "true"
+      MEDIA_INGEST_ENABLED: "true"
+      MEDIA_ALLOWED_HOSTS: "93.184.216.34"
+      OCR_ENABLED: "false"
+      MEMORY_FACTS_ENABLED: "true"
     volumes:
       - ./runtime/settings.test.json:/app/chatbot/server/settings.json
       - ./runtime/test-data:/app/runtime-data
