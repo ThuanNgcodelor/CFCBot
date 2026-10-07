@@ -1,0 +1,14 @@
+{
+  "workflows": {
+    "ubx64Gv1QJ5NE7Cx": {
+      "lastSyncedHash": "84b48b28bd9c5228964698bff5b0de1328f24a32da725ccb170d6cc7d9f14a57",
+      "lastSyncedAt": "2026-10-07T03:54:36.394Z",
+      "filename": "[TEST] CFC Co Bay Chatbot.workflow.ts"
+    },
+    "stDI5UffKsus3OQd": {
+      "lastSyncedHash": "ff8d1009c5ffbc6cf27cb8b87638a4afb33a01c467ecc1f50beadd64d1dfd5a4",
+      "lastSyncedAt": "2026-10-07T03:55:01.659Z",
+      "filename": "[TEST] Zeo Chatbot.workflow.ts"
+    }
+  }
+}
