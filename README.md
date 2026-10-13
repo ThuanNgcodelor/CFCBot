@@ -7,10 +7,12 @@ Current state: CFCBot is the active production runtime. The API, Redis and n8n
 containers run under the CFCBot Compose project; the legacy Javis service is
 disabled but its rollback artifacts remain during the observation window.
 
+Repository map: [docs/PROJECT_TREE_CURRENT.md](docs/PROJECT_TREE_CURRENT.md).
+
 ## What is included
 
 - Existing chatbot backend, dashboard, tests, plans and knowledge.
-- Seven local n8n-as-code workflow sources.
+- Eight tracked local n8n-as-code workflow sources (including the two pulled test copies).
 - Original DOCX/XLSX under `docs/source`.
 - Docker Compose for Redis, n8n, API and optional Cloudflare.
 - One root `.env` as the secret/config inventory.

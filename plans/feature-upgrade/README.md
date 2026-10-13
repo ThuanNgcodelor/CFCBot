@@ -15,7 +15,7 @@ nghiệm thu và rollback độc lập.
 - Redis Stream, debounce bundle, response/sales outbox và LeadDraft theo vùng đã
   triển khai shadow; OCR vẫn thuộc Phase 05.
 - Telegram hiện gửi trực tiếp tới một `chat_id` chung.
-- Bảy workflow n8n source vẫn hiện diện trong `workflows/local-n8n`.
+- Tám workflow n8n source đang được track trong `workflows/local-n8n`, gồm hai bản test vừa pull từ n8n.
 - CodeGraph index có mặt nhưng không mở được database sau khi repo bị move; cần
   re-index trong Phase 00/01.
 
